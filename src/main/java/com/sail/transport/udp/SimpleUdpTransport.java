@@ -5,8 +5,6 @@ import com.sail.exception.StartFailException;
 import com.sail.handler.TransportHandler;
 import com.sail.message.Message;
 import com.sail.message.MessageType;
-import com.sail.params.ConnParams;
-import com.sail.params.UdpParams;
 import com.sail.transport.ITransport;
 import com.sail.util.FrameUtil;
 
@@ -22,22 +20,30 @@ import java.util.logging.Logger;
 
 public class SimpleUdpTransport implements ITransport {
     private static final Logger log = Logger.getLogger(SimpleUdpTransport.class.getName());
+    private int port;
+    private int buffSize = 1024;
+    public SimpleUdpTransport(int port) {
+        this.port = port;
+    }
+    public SimpleUdpTransport(int port, int buffSize) {
+        this(port);
+        this.buffSize = buffSize;
+    }
+
     private DatagramSocket server = null;
     private boolean flag = true;
     private List<TransportHandler> handlerList;
-
     private ExecutorService executor = Executors.newFixedThreadPool(1);
 
     @Override
-    public void open(ConnParams params) throws StartFailException {
-        UdpParams udpParams = (UdpParams) params;
+    public void open() throws StartFailException {
         try {
-            server = new DatagramSocket(udpParams.getPort());
+            server = new DatagramSocket(port);
         } catch (SocketException e) {
             throw new StartFailException("UDP Server start failed!", e);
         }
         executor.execute(() -> {
-            byte[] buff = new byte[udpParams.getBuffSize()];
+            byte[] buff = new byte[buffSize];
             DatagramPacket packet =new DatagramPacket(buff, buff.length);
             while (flag) {
                 try {
@@ -62,7 +68,7 @@ public class SimpleUdpTransport implements ITransport {
                 }
             }
         });
-        log.info("UDP server is listening on [" + udpParams.getPort() + "]...");
+        log.info("UDP server is listening on [" + port + "]...");
     }
 
     @Override

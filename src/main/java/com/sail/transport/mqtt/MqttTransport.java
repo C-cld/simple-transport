@@ -6,7 +6,6 @@ import com.sail.exception.StartFailException;
 import com.sail.handler.TransportHandler;
 import com.sail.message.Message;
 import com.sail.message.MessageType;
-import com.sail.params.ConnParams;
 import com.sail.params.MqttParams;
 import com.sail.transport.ITransport;
 import org.eclipse.paho.client.mqttv3.*;
@@ -19,27 +18,27 @@ import java.util.logging.Logger;
 
 public class MqttTransport implements ITransport {
     private static final Logger log = Logger.getLogger(MqttTransport.class.getName());
+    private MqttParams connParams = null;
+    public MqttTransport(MqttParams connParams) {
+        this.connParams = connParams;
+    }
+
     private MqttClient mqttClient;
     private List<TransportHandler> handlerList;
-
     private boolean connected = false;
 
-    private MqttParams connParams = null;
-
     @Override
-    public void open(ConnParams params) throws StartFailException, DisconnectException {
-        MqttParams mqttParams = (MqttParams) params;
-        connParams = mqttParams;
+    public void open() throws StartFailException, DisconnectException {
 
         MqttConnectOptions options = new MqttConnectOptions();
-        options.setUserName(mqttParams.getUsername());
-        options.setPassword(mqttParams.getPassword().toCharArray());
+        options.setUserName(connParams.getUsername());
+        options.setPassword(connParams.getPassword().toCharArray());
         options.setConnectionTimeout(30);///默认：30
         options.setAutomaticReconnect(true);//默认：false
         options.setCleanSession(true);//默认：true
 
         try {
-            mqttClient = new MqttClient(mqttParams.getAddress(), mqttParams.getClientId(), new MemoryPersistence());
+            mqttClient = new MqttClient(connParams.getAddress(), connParams.getClientId(), new MemoryPersistence());
             mqttClient.setCallback(new MqttCallback() {
                 @Override
                 public void connectionLost(Throwable cause) {
@@ -71,7 +70,7 @@ public class MqttTransport implements ITransport {
             });
 
             mqttClient.connect(options);
-            mqttClient.subscribe(mqttParams.getConsumerTopic());
+            mqttClient.subscribe(connParams.getConsumerTopic());
             log.info("MQTT connected...");
             connected = true;
         } catch (MqttException e) {

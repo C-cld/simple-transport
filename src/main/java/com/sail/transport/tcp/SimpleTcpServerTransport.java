@@ -5,8 +5,6 @@ import com.sail.exception.StartFailException;
 import com.sail.handler.TransportHandler;
 import com.sail.message.Message;
 import com.sail.message.MessageType;
-import com.sail.params.ConnParams;
-import com.sail.params.TcpParams;
 import com.sail.transport.ITransport;
 
 import java.io.IOException;
@@ -23,31 +21,26 @@ import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class SimpleTcpServerTransport implements ITransport {
-
-    public SimpleTcpServerTransport(int port) {
-    }
-
     private static final Logger log = Logger.getLogger(SimpleTcpServerTransport.class.getName());
-
-    private List<TransportHandler> handlerList;
-
-    private Map<String, Socket> clientMap = new ConcurrentHashMap<>();
-
-    private ServerSocket server = null;
-
-    private boolean flag = true;
-
     private int port;
-
     private int buffSize = 1024;
-
+    public SimpleTcpServerTransport(int port) {
+        this.port = port;
+    }
+    public SimpleTcpServerTransport(int port, int buffSize) {
+        this(port);
+        this.buffSize = buffSize;
+    }
+    private List<TransportHandler> handlerList;
+    private Map<String, Socket> clientMap = new ConcurrentHashMap<>();
+    private ServerSocket server = null;
+    private boolean flag = true;
     private ExecutorService executor = Executors.newFixedThreadPool(1);
 
     @Override
-    public void open(ConnParams params) throws StartFailException {
-        TcpParams tcpParams = (TcpParams) params;
+    public void open() throws StartFailException {
         try {
-            server = new ServerSocket(tcpParams.getPort());
+            server = new ServerSocket(this.port);
         } catch (IOException e) {
             throw new StartFailException("UDP server start failed!", e);
         }
@@ -58,7 +51,7 @@ public class SimpleTcpServerTransport implements ITransport {
                     String address = client.getRemoteSocketAddress().toString().substring(1);
                     clientMap.put(address, client);
                     InputStream inputStream = client.getInputStream();
-                    byte[] tmp = new byte[tcpParams.getBuffSize()];
+                    byte[] tmp = new byte[this.buffSize];
                     int len;
                     while ((len = inputStream.read(tmp)) != -1){
                         byte[] buff = new byte[len];
@@ -74,7 +67,7 @@ public class SimpleTcpServerTransport implements ITransport {
                 }
             }
         });
-        log.info("TCP server is listening on [" + tcpParams.getPort() + "]...");
+        log.info("TCP server is listening on [" + this.port + "]...");
     }
 
     @Override

@@ -1,6 +1,6 @@
 package com.sail.params;
 
-public class MqttParams extends ConnParams {
+public class MqttParams {
     private String clientId;
     private String address;
     private String username;
