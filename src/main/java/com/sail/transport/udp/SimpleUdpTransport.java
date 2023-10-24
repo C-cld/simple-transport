@@ -29,7 +29,7 @@ public class SimpleUdpTransport implements ITransport {
         try {
             server = new DatagramSocket(udpParams.getPort());
         } catch (SocketException e) {
-            throw new StartFailException("UDP Server start fail!", e);
+            throw new StartFailException("UDP Server start failed!", e);
         }
         byte[] buff = new byte[udpParams.getBuffSize()];
         log.info("UDP server is listening on [" + udpParams.getPort() + "]...");
@@ -60,7 +60,8 @@ public class SimpleUdpTransport implements ITransport {
 
     @Override
     public void close() {
-
+        server.close();
+        server = null;
     }
 
     @Override
