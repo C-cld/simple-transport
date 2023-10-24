@@ -30,6 +30,8 @@ public class SimpleTcpServerTransport implements ITransport {
 
     private ServerSocket server = null;
 
+    private boolean flag = true;
+
     @Override
     public void open(ConnParams params) throws StartFailException {
         TcpParams tcpParams = (TcpParams) params;
@@ -39,7 +41,7 @@ public class SimpleTcpServerTransport implements ITransport {
             throw new StartFailException("UDP server start failed!", e);
         }
         log.info("TCP server is listening on [" + tcpParams.getPort() + "]...");
-        while (true) {
+        while (flag) {
             try {
                 Socket client = server.accept();
                 String address = client.getRemoteSocketAddress().toString().substring(1);
@@ -64,7 +66,15 @@ public class SimpleTcpServerTransport implements ITransport {
 
     @Override
     public void close() {
-
+        if (server != null) {
+            try {
+                server.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        server = null;
+        flag = false;
     }
 
     @Override

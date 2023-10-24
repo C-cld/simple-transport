@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 public class SimpleUdpTransport implements ITransport {
     private static final Logger log = Logger.getLogger(SimpleUdpTransport.class.getName());
     private DatagramSocket server = null;
+    private boolean flag = true;
     private List<TransportHandler> handlerList;
 
     @Override
@@ -34,7 +35,7 @@ public class SimpleUdpTransport implements ITransport {
         byte[] buff = new byte[udpParams.getBuffSize()];
         log.info("UDP server is listening on [" + udpParams.getPort() + "]...");
         DatagramPacket packet =new DatagramPacket(buff, buff.length);
-        while (true) {
+        while (flag) {
             try {
                 server.receive(packet);
                 int len = packet.getLength();
@@ -61,6 +62,7 @@ public class SimpleUdpTransport implements ITransport {
     @Override
     public void close() {
         server.close();
+        flag = false;
         server = null;
     }
 
