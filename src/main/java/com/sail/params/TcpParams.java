@@ -1,9 +1,9 @@
 package com.sail.params;
 
 public class TcpParams extends ConnParams {
-    private int port;
+    private int port = -1;
 
-    private int buffSize;
+    private int buffSize = 1024;
 
     public int getPort() {
         return port;

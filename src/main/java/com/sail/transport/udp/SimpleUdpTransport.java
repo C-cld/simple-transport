@@ -16,6 +16,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class SimpleUdpTransport implements ITransport {
@@ -23,6 +25,8 @@ public class SimpleUdpTransport implements ITransport {
     private DatagramSocket server = null;
     private boolean flag = true;
     private List<TransportHandler> handlerList;
+
+    private ExecutorService executor = Executors.newFixedThreadPool(1);
 
     @Override
     public void open(ConnParams params) throws StartFailException {
@@ -32,38 +36,41 @@ public class SimpleUdpTransport implements ITransport {
         } catch (SocketException e) {
             throw new StartFailException("UDP Server start failed!", e);
         }
-        byte[] buff = new byte[udpParams.getBuffSize()];
-        log.info("UDP server is listening on [" + udpParams.getPort() + "]...");
-        DatagramPacket packet =new DatagramPacket(buff, buff.length);
-        while (flag) {
-            try {
-                server.receive(packet);
-                int len = packet.getLength();
-                if (len > 0) {
-                    byte[] content = new byte[len];
-                    System.arraycopy(packet.getData(), 0, content, 0, len);
-                    InetSocketAddress socketAddress = (InetSocketAddress) packet.getSocketAddress();
-                    String address = String.format("%s:%d", socketAddress.getAddress().getHostAddress(), socketAddress.getPort());
-                    log.info("Recv: " + FrameUtil.byteArr2HexString(content) + "(" + address + ")");
-                    if (handlerList != null && handlerList.size() > 0) {
-                        Message message = new Message();
-                        message.setAddress(address);
-                        message.setBuff(content);
-                        message.setType(MessageType.UDP);
-                        handlerList.forEach(handler -> handler.onDataArrived(this, message));
+        executor.execute(() -> {
+            byte[] buff = new byte[udpParams.getBuffSize()];
+            DatagramPacket packet =new DatagramPacket(buff, buff.length);
+            while (flag) {
+                try {
+                    server.receive(packet);
+                    int len = packet.getLength();
+                    if (len > 0) {
+                        byte[] content = new byte[len];
+                        System.arraycopy(packet.getData(), 0, content, 0, len);
+                        InetSocketAddress socketAddress = (InetSocketAddress) packet.getSocketAddress();
+                        String address = String.format("%s:%d", socketAddress.getAddress().getHostAddress(), socketAddress.getPort());
+                        log.info("Recv: " + FrameUtil.byteArr2HexString(content) + "(" + address + ")");
+                        if (handlerList != null && handlerList.size() > 0) {
+                            Message message = new Message();
+                            message.setAddress(address);
+                            message.setBuff(content);
+                            message.setType(MessageType.UDP);
+                            handlerList.forEach(handler -> handler.onDataArrived(this, message));
+                        }
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-        }
+        });
+        log.info("UDP server is listening on [" + udpParams.getPort() + "]...");
     }
 
     @Override
     public void close() {
         server.close();
-        flag = false;
         server = null;
+        flag = false;
+        executor.shutdown();
     }
 
     @Override
@@ -89,10 +96,11 @@ public class SimpleUdpTransport implements ITransport {
     }
 
     @Override
-    public void addHandler(TransportHandler handler) {
+    public ITransport addHandler(TransportHandler handler) {
         if (handlerList == null) {
             handlerList = new ArrayList<>();
         }
         handlerList.add(handler);
+        return this;
     }
 }

@@ -121,10 +121,11 @@ public class MqttTransport implements ITransport {
     }
 
     @Override
-    public void addHandler(TransportHandler handler) {
+    public ITransport addHandler(TransportHandler handler) {
         if (handlerList == null) {
             handlerList = new ArrayList<>();
         }
         handlerList.add(handler);
+        return this;
     }
 }

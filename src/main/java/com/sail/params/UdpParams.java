@@ -1,8 +1,8 @@
 package com.sail.params;
 
 public class UdpParams extends ConnParams {
-    private int port;
-    private int buffSize;
+    private int port = -1;
+    private int buffSize = 1024;
 
     public int getPort() {
         return port;

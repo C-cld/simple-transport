@@ -11,5 +11,5 @@ public interface ITransport {
     void open(ConnParams params) throws StartFailException, DisconnectException;
     void close();
     void send(Message message) throws SendException;
-    void addHandler(TransportHandler handler);
+    ITransport addHandler(TransportHandler handler);
 }

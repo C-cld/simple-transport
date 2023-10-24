@@ -18,9 +18,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class SimpleTcpServerTransport implements ITransport {
+
+    public SimpleTcpServerTransport(int port) {
+    }
 
     private static final Logger log = Logger.getLogger(SimpleTcpServerTransport.class.getName());
 
@@ -32,6 +37,12 @@ public class SimpleTcpServerTransport implements ITransport {
 
     private boolean flag = true;
 
+    private int port;
+
+    private int buffSize = 1024;
+
+    private ExecutorService executor = Executors.newFixedThreadPool(1);
+
     @Override
     public void open(ConnParams params) throws StartFailException {
         TcpParams tcpParams = (TcpParams) params;
@@ -40,28 +51,30 @@ public class SimpleTcpServerTransport implements ITransport {
         } catch (IOException e) {
             throw new StartFailException("UDP server start failed!", e);
         }
-        log.info("TCP server is listening on [" + tcpParams.getPort() + "]...");
-        while (flag) {
-            try {
-                Socket client = server.accept();
-                String address = client.getRemoteSocketAddress().toString().substring(1);
-                clientMap.put(address, client);
-                InputStream inputStream = client.getInputStream();
-                byte[] tmp = new byte[tcpParams.getBuffSize()];
-                int len;
-                while ((len = inputStream.read(tmp)) != -1){
-                    byte[] buff = new byte[len];
-                    System.arraycopy(tmp, 0, buff, 0, len);
-                    Message message = new Message();
-                    message.setType(MessageType.TCP);
-                    message.setBuff(buff);
-                    message.setAddress(address);
-                    handlerList.forEach(handler -> handler.onDataArrived(this, message));
+        executor.execute(() -> {
+            while (flag) {
+                try {
+                    Socket client = server.accept();
+                    String address = client.getRemoteSocketAddress().toString().substring(1);
+                    clientMap.put(address, client);
+                    InputStream inputStream = client.getInputStream();
+                    byte[] tmp = new byte[tcpParams.getBuffSize()];
+                    int len;
+                    while ((len = inputStream.read(tmp)) != -1){
+                        byte[] buff = new byte[len];
+                        System.arraycopy(tmp, 0, buff, 0, len);
+                        Message message = new Message();
+                        message.setType(MessageType.TCP);
+                        message.setBuff(buff);
+                        message.setAddress(address);
+                        handlerList.forEach(handler -> handler.onDataArrived(this, message));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-        }
+        });
+        log.info("TCP server is listening on [" + tcpParams.getPort() + "]...");
     }
 
     @Override
@@ -75,6 +88,7 @@ public class SimpleTcpServerTransport implements ITransport {
         }
         server = null;
         flag = false;
+        executor.shutdown();
     }
 
     @Override
@@ -92,10 +106,11 @@ public class SimpleTcpServerTransport implements ITransport {
     }
 
     @Override
-    public void addHandler(TransportHandler handler) {
+    public ITransport addHandler(TransportHandler handler) {
         if (handlerList == null) {
             handlerList = new ArrayList<>();
         }
         handlerList.add(handler);
+        return this;
     }
 }
