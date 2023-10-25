@@ -26,7 +26,6 @@ public class MqttTransport implements ITransport {
     private MqttClient mqttClient;
     private List<TransportHandler> handlerList;
     private boolean connected = false;
-
     @Override
     public void open() throws StartFailException, DisconnectException {
 
@@ -43,6 +42,7 @@ public class MqttTransport implements ITransport {
                 @Override
                 public void connectionLost(Throwable cause) {
                     connected = false;
+                    log.info("MQTT transport start fail");
                 }
 
                 @Override
@@ -71,27 +71,21 @@ public class MqttTransport implements ITransport {
 
             mqttClient.connect(options);
             mqttClient.subscribe(connParams.getConsumerTopic());
-            log.info("MQTT connected...");
+            log.info("MQTT connected with client id [" + connParams.getClientId() + "]...");
             connected = true;
         } catch (MqttException e) {
             throw new StartFailException("MQTT transport start fail", e);
-        }
-
-        while (true) {
-            if (!connected) {
-                throw new DisconnectException("MQTT disconnect!");
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
     }
 
     @Override
     public void close() {
 
+    }
+
+    @Override
+    public boolean isConnected() {
+        return mqttClient.isConnected() && this.connected;
     }
 
     @Override

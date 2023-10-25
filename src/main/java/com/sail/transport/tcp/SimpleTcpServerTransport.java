@@ -34,7 +34,7 @@ public class SimpleTcpServerTransport implements ITransport {
     private List<TransportHandler> handlerList;
     private Map<String, Socket> clientMap = new ConcurrentHashMap<>();
     private ServerSocket server = null;
-    private boolean flag = true;
+    private boolean connected = false;
     private ExecutorService executor = Executors.newFixedThreadPool(1);
 
     @Override
@@ -44,8 +44,9 @@ public class SimpleTcpServerTransport implements ITransport {
         } catch (IOException e) {
             throw new StartFailException("UDP server start failed!", e);
         }
+        this.connected = true;
         executor.execute(() -> {
-            while (flag) {
+            while (connected) {
                 try {
                     Socket client = server.accept();
                     String address = client.getRemoteSocketAddress().toString().substring(1);
@@ -80,8 +81,13 @@ public class SimpleTcpServerTransport implements ITransport {
             }
         }
         server = null;
-        flag = false;
+        connected = false;
         executor.shutdown();
+    }
+
+    @Override
+    public boolean isConnected() {
+        return this.connected && !server.isClosed();
     }
 
     @Override

@@ -31,7 +31,7 @@ public class SimpleUdpTransport implements ITransport {
     }
 
     private DatagramSocket server = null;
-    private boolean flag = true;
+    private boolean connected = false;
     private List<TransportHandler> handlerList;
     private ExecutorService executor = Executors.newFixedThreadPool(1);
 
@@ -42,10 +42,11 @@ public class SimpleUdpTransport implements ITransport {
         } catch (SocketException e) {
             throw new StartFailException("UDP Server start failed!", e);
         }
+        this.connected = true;
         executor.execute(() -> {
             byte[] buff = new byte[buffSize];
             DatagramPacket packet =new DatagramPacket(buff, buff.length);
-            while (flag) {
+            while (connected) {
                 try {
                     server.receive(packet);
                     int len = packet.getLength();
@@ -73,10 +74,15 @@ public class SimpleUdpTransport implements ITransport {
 
     @Override
     public void close() {
+        connected = false;
         server.close();
         server = null;
-        flag = false;
         executor.shutdown();
+    }
+
+    @Override
+    public boolean isConnected() {
+        return connected;
     }
 
     @Override

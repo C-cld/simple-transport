@@ -9,6 +9,7 @@ import com.sail.message.Message;
 public interface ITransport {
     void open() throws StartFailException, DisconnectException;
     void close();
+    boolean isConnected();
     void send(Message message) throws SendException;
     ITransport addHandler(TransportHandler handler);
 }
