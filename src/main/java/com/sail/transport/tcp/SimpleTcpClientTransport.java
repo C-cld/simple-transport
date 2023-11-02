@@ -9,7 +9,9 @@ import com.sail.message.MessageType;
 import com.sail.transport.ITransport;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -77,11 +79,21 @@ public class SimpleTcpClientTransport implements ITransport {
 
     @Override
     public void send(Message message) throws SendException {
-
+        try {
+            OutputStream outputStream = client.getOutputStream();
+            outputStream.write(message.getBuff());
+            outputStream.flush();
+        } catch (Exception e) {
+            throw new SendException("Send fail", e);
+        }
     }
 
     @Override
     public ITransport addHandler(TransportHandler handler) {
-        return null;
+        if (handlerList == null) {
+            handlerList = new ArrayList<>();
+        }
+        handlerList.add(handler);
+        return this;
     }
 }
