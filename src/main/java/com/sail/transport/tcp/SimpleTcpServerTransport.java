@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -92,14 +93,30 @@ public class SimpleTcpServerTransport implements ITransport {
 
     @Override
     public void send(Message message) throws SendException {
-        Socket client = clientMap.get(message.getAddress());
-        if (client != null) {
-            try {
-                OutputStream outputStream = client.getOutputStream();
-                outputStream.write(message.getBuff());
-                outputStream.flush();
-            } catch (Exception e) {
-                throw new SendException("Send fail", e);
+        if (message.getAddress() != null) {
+            if (message.getAddress().equals("*")) {
+                Iterator<Map.Entry<String, Socket>> iterator = clientMap.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<String, Socket> entry = iterator.next();
+                    try {
+                        OutputStream outputStream = entry.getValue().getOutputStream();
+                        outputStream.write(message.getBuff());
+                        outputStream.flush();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                Socket client = clientMap.get(message.getAddress());
+                if (client != null) {
+                    try {
+                        OutputStream outputStream = client.getOutputStream();
+                        outputStream.write(message.getBuff());
+                        outputStream.flush();
+                    } catch (Exception e) {
+                        throw new SendException("Send fail", e);
+                    }
+                }
             }
         }
     }
